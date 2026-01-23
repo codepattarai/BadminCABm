@@ -1,0 +1,100 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BadminCAB – License Key Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; color: #111; }
+    .card { max-width: 720px; padding: 1.5rem; border: 1px solid #ddd; border-radius: 12px; }
+    h1 { color: #4f46e5; font-size: 1.5rem; }
+    label { display: block; margin: .5rem 0 .25rem; font-weight: 600; }
+    input[type="text"] { width: 95%; padding: .75rem; border: 1px solid #bbb; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1rem; }
+    button { background: #4f46e5; color: white; border: 0; padding: .75rem 1rem; border-radius: 8px; cursor: pointer; margin-top: 1rem; }
+    button:disabled { background: #9aa4f2; cursor: not-allowed; }
+    .out { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.25rem; background: #f8fafc; padding: .75rem; border-radius: 8px; word-break: break-word; }
+    .muted { color: #666; font-size: .9rem; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>BadminCAB – Full License Generator</h1>
+    <p class="muted">Enter the <b>Device Code</b> you received from the app. This generates a <b>device-locked</b> full license key.</p>
+
+    <label for="deviceCode">Device Code</label>
+    <input id="deviceCode" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" />
+
+    <div class="row">
+      <button id="genBtn">Generate Full License Key</button>
+      <button id="copyBtn" disabled>Copy</button>
+    </div>
+
+    <p id="result" class="out" style="display:none;"></p>
+    <p class="muted">Email the generated key back to the user. They should paste it into the app’s license screen.</p>
+    <hr>
+    <p class="muted">
+      Vendor: <b>codepattarai</b><br>
+      Product: <b>BadminCAB</b>
+    </p>
+  </div>
+
+  <script>
+    // !!! MUST MATCH Flutter's kHmacSecret exactly !!!
+    const HMAC_SECRET = "BadminCAB-Oodi-Vilayadu-Paappa-2026";
+    const VENDOR = "codepattarai";
+    const PRODUCT = "BadminCAB";
+
+    const deviceInput = document.getElementById('deviceCode');
+    const genBtn = document.getElementById('genBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const resultEl = document.getElementById('result');
+
+    function sanitizeDeviceCode(dc) {
+      return (dc || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+
+    async function hmacSha256Hex(secret, message) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: { name: 'SHA-256' } },
+        false,
+        ['sign']
+      );
+      const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+      const bytes = new Uint8Array(sig);
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function formatGroups(hex, total = 25, group = 5) {
+      const s = hex.slice(0, total).toUpperCase();
+      return s.match(new RegExp(`.{1,${group}}`, 'g')).join('-');
+    }
+
+    async function generate() {
+      const raw = sanitizeDeviceCode(deviceInput.value);
+      if (!raw || raw.length < 8) {
+        alert('Please enter a valid Device Code (e.g., ABCD-EF12-3456-7890)');
+        return;
+      }
+      const payload = `FULL|${raw}|${VENDOR}|${PRODUCT}`;
+      const hex = await hmacSha256Hex(HMAC_SECRET, payload);
+      const key = formatGroups(hex, 25, 5); // XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+      resultEl.textContent = key;
+      resultEl.style.display = '';
+      copyBtn.disabled = false;
+    }
+
+    genBtn.addEventListener('click', generate);
+    copyBtn.addEventListener('click', async () => {
+      if (!resultEl.textContent) return;
+      await navigator.clipboard.writeText(resultEl.textContent);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => (copyBtn.textContent = 'Copy'), 1200);
+    });
+  </script>
+</body>
+</html>
