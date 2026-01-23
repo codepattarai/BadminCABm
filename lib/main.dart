@@ -1,7 +1,7 @@
 
 // lib/main.dart
-// BadminCAB Flutter Mobile App - Fixed Version
-// Issues fixed: report manager separated
+// BadminCAB Flutter Mobile App
+// Version 20.26.2 Prod Owner Satheesh K. 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +16,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'report_manager.dart';
 import 'csv_exporter.dart';
+// NEW: licensing
+import 'license_manager.dart';
+import 'license_screen.dart';							 
 
 void main() {
   runApp(const BadminCABApp());
@@ -37,7 +40,7 @@ class BadminCABApp extends StatelessWidget {
             brightness: Brightness.light,
           ),
         ),
-        home: const MainScreen(),
+        home: const LicenseGate(child: MainScreen()),
         debugShowCheckedModeBanner: false,
       ),
     );
@@ -517,7 +520,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BadminCAB Dashboard'),
+        title: const Text('Badminton Court Allocation Board'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
       ),
@@ -1882,6 +1885,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _courtNumbersController = TextEditingController();
   final _matchDurationController = TextEditingController();
   final _breakDurationController = TextEditingController();
+  // NEW: license-related state
+  final _lm = LicenseManager();
+  bool _licLoading = true;
+  String _licenseStatus = 'Checking…';
+  String _deviceCode = '';
+  DateTime? _trialExpiry;							   
   @override
   void initState() {
     super.initState();
@@ -1889,7 +1898,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _courtNumbersController.text = appState.courtNumbers;
     _matchDurationController.text = appState.matchDuration.toString();
     _breakDurationController.text = appState.breakDuration.toString();
+    _loadLicenseInfo();
+  }											 
+
+  Future<void> _loadLicenseInfo() async {
+    try {
+      final info = await _lm.getCurrentLicense();
+      final dc = await _lm.getDeviceCode();
+      String status;
+      DateTime? expiry;
+
+      switch (info.type) {
+        case LicenseType.full:
+          status = 'Full License (device-locked)';
+          break;
+        case LicenseType.trial:
+          expiry = info.expiry;
+          if (expiry != null) {
+            final daysLeft = expiry.isAfter(DateTime.now())
+                ? (expiry.difference(DateTime.now()).inDays + 1)
+                : 0;
+            status = daysLeft > 0
+                ? 'Trial Active – $daysLeft day(s) left (expires ${DateFormat('yyyy-MM-dd').format(expiry)})'
+                : 'Trial expired';
+          } else {
+            status = 'Trial (expiry unknown)';
+          }
+          break;
+        case LicenseType.none:
+        default:
+          status = 'Not activated';
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _deviceCode = dc;
+        _trialExpiry = expiry;
+        _licenseStatus = status;
+        _licLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _licenseStatus = 'Unable to read license (${e.toString()})';
+        _licLoading = false;
+      });
+    }
   }
+
+  void _copyDeviceCode() async {
+    await Clipboard.setData(ClipboardData(text: _deviceCode));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Device code copied')),
+    );
+  }
+
+  void _shareDeviceCode() {
+    final body =
+        'Device Code: $_deviceCode\n\nPlease issue a full license key for BadminCAB.';
+    Share.share(body, subject: 'BadminCAB – Device Code');
+  }
+
+  void _openLicenseManager() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LicenseScreen()),
+    );
+    // When coming back, refresh status
+    _loadLicenseInfo();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1906,6 +1985,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ===== NEW: License Status card =====
+                Card(
+                  color: Colors.indigo[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _licLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'License Status',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    _licenseStatus.startsWith('Full')
+                                        ? Icons.verified
+                                        : _licenseStatus.startsWith('Trial')
+                                            ? Icons.hourglass_top
+                                            : Icons.error_outline,
+                                    color: _licenseStatus.startsWith('Full')
+                                        ? Colors.green
+                                        : _licenseStatus.startsWith('Trial')
+                                            ? Colors.orange
+                                            : Colors.red,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _licenseStatus,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Device Code',
+                                style: TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.indigo),
+                                ),
+                                child: SelectableText(
+                                  _deviceCode.isEmpty ? '—' : _deviceCode,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed:
+                                        _deviceCode.isEmpty ? null : _copyDeviceCode,
+                                    icon: const Icon(Icons.copy),
+                                    label: const Text('Copy Code'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xFF6366F1),
+                                      side: const BorderSide(
+                                          color: Color(0xFF6366F1)),
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: _deviceCode.isEmpty
+                                        ? null
+                                        : _shareDeviceCode,
+                                    icon: const Icon(Icons.share),
+                                    label: const Text('Share Code'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xFF6366F1),
+                                      side: const BorderSide(
+                                          color: Color(0xFF6366F1)),
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: _openLicenseManager,
+                                    icon: const Icon(Icons.vpn_key),
+                                    label: const Text('Manage License'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF6366F1),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ===== Existing: Match Settings card =====
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -1913,7 +2103,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Match Settings',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _courtNumbersController,
@@ -1938,7 +2129,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             labelText: 'Break Duration (seconds)',
-                            helperText: 'Time for players to check new assignments',
+                            helperText:
+                                'Time for players to check new assignments',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -1946,16 +2138,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
                     appState.updateSettings(
                       courtNumbers: _courtNumbersController.text,
-                      matchDuration: int.tryParse(_matchDurationController.text),
-                      breakDuration: int.tryParse(_breakDurationController.text),
+                      matchDuration:
+                          int.tryParse(_matchDurationController.text),
+                      breakDuration:
+                          int.tryParse(_breakDurationController.text),
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Settings saved!'), backgroundColor: Colors.green),
+                      const SnackBar(
+                          content: Text('Settings saved!'),
+                          backgroundColor: Colors.green),
                     );
                   },
                   icon: const Icon(Icons.save),
@@ -1973,7 +2170,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('Clear History'),
-                        content: const Text('Reset all match history and rest rotation. Continue?'),
+                        content: const Text(
+                            'Reset all match history and rest rotation. Continue?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
@@ -1985,10 +2183,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('History cleared!'), backgroundColor: Colors.green),
+                                    content: Text('History cleared!'),
+                                    backgroundColor: Colors.green),
                               );
                             },
-                            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+                            child: const Text('Clear',
+                                style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
@@ -2017,4 +2217,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _breakDurationController.dispose();
     super.dispose();
   }
-}
+}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																		   
