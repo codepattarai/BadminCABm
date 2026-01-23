@@ -1,34 +1,66 @@
-name: badmincab_mobile
-description: Badminton Court Allocation Board Mobile App
 
-publish_to: 'none'
-version: 20.25.1+1
+name: badmincabm
+description: "BadminCAB — Court assignments, session timer, match history, and reports."
+publish_to: "none"  # keep private; change/remove if publishing to pub.dev
+
+# Developer / metadata
+homepage: https://github.com/codepattarai/badmincabm
+repository: https://github.com/codepattarai/badmincabm
+
+# Version (major.minor.patch+build)
+version: 20.26.1+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # State management
   provider: ^6.0.5
-  shared_preferences: ^2.2.0
-  audioplayers: ^5.2.1  # Add this for sound
-  wakelock_plus: ^1.2.0 # For avoiding timer freeze during screen lock
+
+  # Local storage for simple key/value
+  shared_preferences: ^2.2.2
+
+  # Audio playback for beep sound
+  audioplayers: ^5.2.1
+
+  # Keep screen awake during timer
+  wakelock_plus: ^1.1.4
+
+  # Dates/formatting
+  intl: ^0.19.0
+
+  # File system paths for exporting report files
+  path_provider: ^2.1.1
+
+  # Share exported CSV files
+  share_plus: ^7.2.1
+
+  # Optional Cupertino icons
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^4.0.0
+
+  # App icon generator
   flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/beep.mp3  # Audio
 
-# Icon Configuration
+  assets:
+    - assets/beep.mp3
+
+# === App Icons (badmincabicon) ===
+# Put your icon at: assets/badmincabicon.png (1024x1024 PNG recommended)
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon.png"
-  adaptive_icon_background: "#6366F1"
-  adaptive_icon_foreground: "assets/icon.png"
+  image_path: assets/badmincabicon.png
+  # Optional: if you have separate foreground/background for Android adaptive icon:
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/badmincabicon.png
