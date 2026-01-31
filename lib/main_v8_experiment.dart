@@ -1,7 +1,7 @@
 
 // lib/main.dart
-// BadminCAB Flutter Mobile App
-// Version 20.26.2 Prod Owner Satheesh K. 
+// BadminCAB Flutter Mobile App - Fixed Version
+// Issues fixed: report manager separated
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,9 +16,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'report_manager.dart';
 import 'csv_exporter.dart';
-// NEW: licensing
-import 'license_manager.dart';
-import 'license_screen.dart';							 
 
 void main() {
   runApp(const BadminCABApp());
@@ -40,7 +37,7 @@ class BadminCABApp extends StatelessWidget {
             brightness: Brightness.light,
           ),
         ),
-        home: const LicenseGate(child: MainScreen()),
+        home: const MainScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );
@@ -67,10 +64,6 @@ class AppState extends ChangeNotifier {
 
   // >>> NEW: Use ReportManager for logging & reporting
   final reportManager = ReportManager();
-
-  // >>> ADD: user-adjustable chip scale (1.0 = default)
-  double _chipScale = 1.0;
-  double get chipScale => _chipScale;
 
   // Getters
   List<Player> get allPlayers => _allPlayers;
@@ -154,8 +147,6 @@ class AppState extends ChangeNotifier {
     _matchDuration = prefs.getInt('matchDuration') ?? 10;
     _breakDuration = prefs.getInt('breakDuration') ?? 20;
     _timeRemaining = _matchDuration * 60;
-    // >>> ADD: scale
-    _chipScale      = prefs.getDouble('chipScale') ?? 1.0;
   }
 
   void togglePlayerSelection(String playerId) {
@@ -379,8 +370,6 @@ class AppState extends ChangeNotifier {
     String? courtNumbers,
     int? matchDuration,
     int? breakDuration,
-	// >>> ADD: updateSettings now accepts chipScale too
-    double? chipScale,                            // NEW
   }) {
     // Pause timer to prevent crashes
     if (_isTimerRunning) {
@@ -412,8 +401,6 @@ class AppState extends ChangeNotifier {
     await prefs.setString('courtNumbers', _courtNumbers);
     await prefs.setInt('matchDuration', _matchDuration);
     await prefs.setInt('breakDuration', _breakDuration);
-    // >>> ADD: persist scale
-    await prefs.setDouble('chipScale', _chipScale);
   }
 
   Future<void> clearHistory() async {
@@ -428,34 +415,6 @@ class AppState extends ChangeNotifier {
     _isInBreak = false;
     // >>> NEW: clear via ReportManager
     await reportManager.clearHistory();
-    notifyListeners();
-  }
-
-  // Set only the chip scale (no timer pause, no court resets)
-  void setChipScale(double v) {
-    _chipScale = v.clamp(0.75, 1.60);
-    _saveSettings();        // persists 'chipScale'
-    notifyListeners();      // rebuild listeners (Dashboard chips resize)
-  }
-
-  // >>> ADD: test sound (does not alter timers)
-  Future<void> testBeep() async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.seek(Duration.zero);
-      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
-      await _audioPlayer.play(AssetSource('beep.mp3'));
-      await HapticFeedback.heavyImpact();
-    } catch (e) {
-      // fallback vibration
-      await HapticFeedback.heavyImpact();
-    }
-  }
-
-  // >>> ADD: reset only the rest rotation/order (do not touch report/history/currentRound)
-  void resetRestOrder() {
-    _restRotationIndex = 0;
-    _restingPlayers = [];
     notifyListeners();
   }
 
@@ -558,7 +517,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Badminton Court Allocation Board'),
+        title: const Text('BadminCAB Dashboard'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
       ),
@@ -738,24 +697,13 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-
   // Responsive court layout
   Widget _buildCourtAssignments(BuildContext context, AppState appState) {
     final screenWidth = MediaQuery.of(context).size.width;
     final orientation = MediaQuery.of(context).orientation;
     final cardsPerRow = orientation == Orientation.portrait ? 1 : 2;
     final cardWidth = (screenWidth - (16 * (cardsPerRow + 1))) / cardsPerRow;
-  
-    // === compact defaults with gentle scaling ===
-    final s       = appState.chipScale;                        // 0.75–1.60
-    final nameFs  = (22.0 * s).clamp(14.0, 22.0);              // keep 22 at 1.0
-    final titleFs = (28.0 * s).clamp(18.0, 30.0);
-    final padH    = (10.0 * s).clamp(6.0, 14.0);               // tighter than before
-    final padV    = (3.0  * s).clamp(2.0, 6.0);
-    final chipGap = (8.0  * s).clamp(6.0, 14.0);               // smaller horizontal/vertical gaps
-    final borderW = (1.2  * s).clamp(1.0, 1.8);
-    final radius  = const BorderRadius.all(Radius.circular(12)); // rectangular with soft corners
-  
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -771,9 +719,10 @@ class DashboardScreen extends StatelessWidget {
             final index = entry.key;
             final players = entry.value;
             final courtNum = appState.courtNumbers.split(',')[index].trim();
-  
             return SizedBox(
-              width: orientation == Orientation.portrait ? double.infinity : cardWidth,
+              width: orientation == Orientation.portrait
+                  ? double.infinity
+                  : cardWidth,
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -782,58 +731,22 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Court $courtNum',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: titleFs,
-                          letterSpacing: 0.2,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                      SizedBox(height: chipGap),
+                      const SizedBox(height: 8),
                       Wrap(
-                        spacing: chipGap,
-                        runSpacing: chipGap,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: players.map((playerName) {
                           final isPaired = _isPaired(playerName, appState);
-  
-                          final Color bg = isPaired
-                              ? Colors.orange.shade300
-                              : Colors.orange.shade200;
-                          final Color border = isPaired
-                              ? Colors.deepOrange.shade400
-                              : Colors.orange.shade400;
-  
                           return Chip(
-                            // Tighter, more rectangular feel
-                            labelPadding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isPaired) ...[
-                                  const Icon(Icons.link, size: 18, color: Colors.black87),
-                                  const SizedBox(width: 6),
-                                ],
-                                Flexible(
-                                  child: Text(
-                                    playerName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: nameFs,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.15,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: bg,
-                            shape: RoundedRectangleBorder(              // <- changed
-                              borderRadius: radius,
-                              side: BorderSide(color: border, width: borderW),
-                            ),
-                            elevation: 0,                               // flatter, more “label-like”
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: const VisualDensity(horizontal: -1, vertical: -2),       // reduces intrinsic height
+                            label: Text(playerName),
+                            backgroundColor:
+                                isPaired ? Colors.orange[100] : Colors.blue[100],
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           );
                         }).toList(),
                       ),
@@ -857,71 +770,26 @@ class DashboardScreen extends StatelessWidget {
     }
 
   Widget _buildRestingPlayers(BuildContext context, AppState appState) {
-    final s       = appState.chipScale;
-    final nameFs  = (22.0 * s).clamp(14.0, 22.0);
-    final titleFs = (26.0 * s).clamp(16.0, 28.0);
-    final padH    = (10.0 * s).clamp(6.0, 14.0);
-    final padV    = (3.0  * s).clamp(2.0, 6.0);
-    final chipGap = (8.0  * s).clamp(6.0, 14.0);
-    final borderW = (1.4  * s).clamp(1.0, 2.0);
-    final radius  = const BorderRadius.all(Radius.circular(12));
-  
     return Card(
-      color: Colors.teal.shade50,
+      color: Colors.amber[50],
       child: Padding(
-        padding: const EdgeInsets.all(16),			// was 16
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Resting Players',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: titleFs,
-                letterSpacing: 0.2,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            SizedBox(height: chipGap),
+            const SizedBox(height: 8),
             Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
+              spacing: 8,
+              runSpacing: 8,
               children: appState.restingPlayers.map((playerName) {
                 final isPaired = _isPaired(playerName, appState);
-  
-                final Color bg = isPaired ? Colors.teal.shade300 : Colors.teal.shade200;
-                final Color border = isPaired ? Colors.teal.shade700 : Colors.teal.shade600;
-  
                 return Chip(
-                  labelPadding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isPaired) ...[
-                        const Icon(Icons.link, size: 18, color: Colors.black87),
-                        const SizedBox(width: 6),
-                      ],
-                      Flexible(
-                        child: Text(
-                          playerName,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: nameFs,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.15,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: bg,
-                  shape: RoundedRectangleBorder(                    // <- changed
-                    borderRadius: radius,
-                    side: BorderSide(color: border, width: borderW),
-                  ),
-                  elevation: 0,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
+                  label: Text(playerName),
+                  backgroundColor: isPaired ? Colors.orange[200] : Colors.amber[200],
                 );
               }).toList(),
             ),
@@ -1187,121 +1055,83 @@ class PlayersManagementScreen extends StatelessWidget {
         title: const Text('Manage Players'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
-        // Remove the + icon from the app bar to avoid duplication with bottom button
-        // actions: [ ... ]  // <- delete if present
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showAddPlayerDialog(context),
+          ),
+        ],
       ),
-  
-      // NOTE: no floatingActionButton on this screen anymore
-  
       body: Consumer<AppState>(
         builder: (context, appState, _) {
-          return Column(
-            children: [
-              // === SCROLLABLE LIST ===
-              Expanded(
-                child: appState.allPlayers.isEmpty
-                    ? const Center(
-                        child: Text('No players yet. Tap Add Player to create one.'),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                        itemCount: appState.allPlayers.length,
-                        itemBuilder: (context, index) {
-                          final player = appState.allPlayers[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              title: Text(
-                                player.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Row(
-                                children: [
-                                  Chip(
-                                    label: Text(
-                                      player.type.toUpperCase(),
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                    backgroundColor: Colors.blue[100],
-                                    padding: EdgeInsets.zero,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  if (player.pairNum != null) ...[
-                                    const SizedBox(width: 8),
-                                    Chip(
-                                      label: Text(
-                                        'Pair ${player.pairNum}',
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                      backgroundColor: Colors.orange[100],
-                                      padding: EdgeInsets.zero,
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blue),
-                                    tooltip: 'Edit',
-                                    onPressed: () => _showEditPlayerDialog(context, player),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    tooltip: 'Delete',
-                                    onPressed: () => _confirmDelete(context, appState, player),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-  
-              // === FIXED BOTTOM ACTION AREA ===
-              // Sits above the app's global BottomNavigationBar
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Center(
-                    child: SizedBox(
-                      height: 52,
-                      // Using an ElevatedButton keeps the look consistent and avoids FAB hero issues
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showAddPlayerDialog(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Player'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: const StadiumBorder(),
-                          elevation: 2,
+          if (appState.allPlayers.isEmpty) {
+            return const Center(
+              child: Text('No players yet. Tap + to add players.'),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: appState.allPlayers.length,
+            itemBuilder: (context, index) {
+              final player = appState.allPlayers[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  title: Text(
+                    player.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Row(
+                    children: [
+                      Chip(
+                        label: Text(
+                          player.type.toUpperCase(),
+                          style: const TextStyle(fontSize: 10),
                         ),
+                        backgroundColor: Colors.blue[100],
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
+                      if (player.pairNum != null) ...[
+                        const SizedBox(width: 8),
+                        Chip(
+                          label: Text(
+                            'Pair ${player.pairNum}',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          backgroundColor: Colors.orange[100],
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showEditPlayerDialog(context, player),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDelete(context, appState, player),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddPlayerDialog(context),
+        backgroundColor: const Color(0xFF6366F1),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
-
-//		Deleted - Floating button for adding players
-//      floatingActionButton: FloatingActionButton(
-//        onPressed: () => _showAddPlayerDialog(context),
-//        backgroundColor: const Color(0xFF6366F1),
-//        child: const Icon(Icons.add, color: Colors.white),
-//      ),
 
   void _showAddPlayerDialog(BuildContext context) {
     final nameController = TextEditingController();
@@ -2052,16 +1882,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _courtNumbersController = TextEditingController();
   final _matchDurationController = TextEditingController();
   final _breakDurationController = TextEditingController();
-  // NEW: license-related state
-  final _lm = LicenseManager();
-  bool _licLoading = true;
-  String _licenseStatus = 'Checking…';
-  String _deviceCode = '';
-  DateTime? _trialExpiry;	
-  
-  // Smooth slider: keep a local value while dragging
-  double? _localScale;
-
   @override
   void initState() {
     super.initState();
@@ -2069,77 +1889,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _courtNumbersController.text = appState.courtNumbers;
     _matchDurationController.text = appState.matchDuration.toString();
     _breakDurationController.text = appState.breakDuration.toString();
-    _loadLicenseInfo();
-  }											 
-
-  Future<void> _loadLicenseInfo() async {
-    try {
-      final info = await _lm.getCurrentLicense();
-      final dc = await _lm.getDeviceCode();
-      String status;
-      DateTime? expiry;
-
-      switch (info.type) {
-        case LicenseType.full:
-          status = 'Full License (device-locked)';
-          break;
-        case LicenseType.trial:
-          expiry = info.expiry;
-          if (expiry != null) {
-            final daysLeft = expiry.isAfter(DateTime.now())
-                ? (expiry.difference(DateTime.now()).inDays + 1)
-                : 0;
-            status = daysLeft > 0
-                ? 'Trial Active – $daysLeft day(s) left (expires ${DateFormat('yyyy-MM-dd').format(expiry)})'
-                : 'Trial expired';
-          } else {
-            status = 'Trial (expiry unknown)';
-          }
-          break;
-        case LicenseType.none:
-        default:
-          status = 'Not activated';
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _deviceCode = dc;
-        _trialExpiry = expiry;
-        _licenseStatus = status;
-        _licLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _licenseStatus = 'Unable to read license (${e.toString()})';
-        _licLoading = false;
-      });
-    }
   }
-
-  void _copyDeviceCode() async {
-    await Clipboard.setData(ClipboardData(text: _deviceCode));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Device code copied')),
-    );
-  }
-
-  void _shareDeviceCode() {
-    final body =
-        'Device Code: $_deviceCode\n\nPlease issue a full license key for BadminCAB.';
-    Share.share(body, subject: 'BadminCAB – Device Code');
-  }
-
-  void _openLicenseManager() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const LicenseScreen()),
-    );
-    // When coming back, refresh status
-    _loadLicenseInfo();
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -2156,117 +1906,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ===== NEW: License Status card =====
-                Card(
-                  color: Colors.indigo[50],
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _licLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'License Status',
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(
-                                    _licenseStatus.startsWith('Full')
-                                        ? Icons.verified
-                                        : _licenseStatus.startsWith('Trial')
-                                            ? Icons.hourglass_top
-                                            : Icons.error_outline,
-                                    color: _licenseStatus.startsWith('Full')
-                                        ? Colors.green
-                                        : _licenseStatus.startsWith('Trial')
-                                            ? Colors.orange
-                                            : Colors.red,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _licenseStatus,
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Device Code',
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.indigo),
-                                ),
-                                child: SelectableText(
-                                  _deviceCode.isEmpty ? '—' : _deviceCode,
-                                  style: const TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed:
-                                        _deviceCode.isEmpty ? null : _copyDeviceCode,
-                                    icon: const Icon(Icons.copy),
-                                    label: const Text('Copy Code'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF6366F1),
-                                      side: const BorderSide(
-                                          color: Color(0xFF6366F1)),
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: _deviceCode.isEmpty
-                                        ? null
-                                        : _shareDeviceCode,
-                                    icon: const Icon(Icons.share),
-                                    label: const Text('Share Code'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF6366F1),
-                                      side: const BorderSide(
-                                          color: Color(0xFF6366F1)),
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: _openLicenseManager,
-                                    icon: const Icon(Icons.vpn_key),
-                                    label: const Text('Manage License'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF6366F1),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ===== Existing: Match Settings card =====
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -2274,8 +1913,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Match Settings',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _courtNumbersController,
@@ -2300,8 +1938,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             labelText: 'Break Duration (seconds)',
-                            helperText:
-                                'Time for players to check new assignments',
+                            helperText: 'Time for players to check new assignments',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -2309,21 +1946,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
                     appState.updateSettings(
                       courtNumbers: _courtNumbersController.text,
-                      matchDuration:
-                          int.tryParse(_matchDurationController.text),
-                      breakDuration:
-                          int.tryParse(_breakDurationController.text),
+                      matchDuration: int.tryParse(_matchDurationController.text),
+                      breakDuration: int.tryParse(_breakDurationController.text),
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Settings saved!'),
-                          backgroundColor: Colors.green),
+                      const SnackBar(content: Text('Settings saved!'), backgroundColor: Colors.green),
                     );
                   },
                   icon: const Icon(Icons.save),
@@ -2341,8 +1973,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('Clear History'),
-                        content: const Text(
-                            'Reset all match history and rest rotation. Continue?'),
+                        content: const Text('Reset all match history and rest rotation. Continue?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
@@ -2354,12 +1985,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('History cleared!'),
-                                    backgroundColor: Colors.green),
+                                    content: Text('History cleared!'), backgroundColor: Colors.green),
                               );
                             },
-                            child: const Text('Clear',
-                                style: TextStyle(color: Colors.red)),
+                            child: const Text('Clear', style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
@@ -2373,164 +2002,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     foregroundColor: Colors.white,
                   ),
                 ),
-				const SizedBox(height: 16),
-				// ===== NEW: Display & Controls card =====
-				Card(
-				  child: Padding(
-					padding: const EdgeInsets.all(16),
-					child: Consumer<AppState>(
-					  builder: (context, appState, _) {
-						// Use local value while dragging; fall back to provider otherwise
-						final scale = _localScale ?? appState.chipScale;
-
-						return Column(
-						  crossAxisAlignment: CrossAxisAlignment.start,
-						  children: [
-							const Text(
-							  'Display & Controls',
-							  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-							),
-							const SizedBox(height: 12),
-
-							// Row header for the slider
-							Row(
-							  children: [
-								const Icon(Icons.text_increase, color: Color(0xFF6366F1)),
-								const SizedBox(width: 12),
-								const Expanded(
-								  child: Text(
-									'Player Chip Size',
-									style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-								  ),
-								),
-								Text(
-								  '${scale.toStringAsFixed(2)}×',
-								  style: const TextStyle(fontSize: 12, color: Colors.grey),
-								),
-							  ],
-							),
-
-							// Smooth slider (local updates while dragging, commit on release)
-							Slider(
-							  value: scale,
-							  min: 0.75,
-							  max: 1.60,
-							  divisions: 17, // 0.05 steps
-							  label: '${scale.toStringAsFixed(2)}×',
-							  onChanged: (v) {
-								setState(() => _localScale = v);        // instant, jank-free UI
-							  },
-							  onChangeEnd: (v) {
-								_localScale = null;                      // hand back control to Provider
-								appState.setChipScale(v);                // lightweight persist & notify
-							  },
-							),
-
-							// Small inline legend/preview (non-interactive)
-							const SizedBox(height: 8),
-							Wrap(
-							  spacing: 8,
-							  runSpacing: 8,
-							  children: [
-								Chip(
-								  label: Row(
-									mainAxisSize: MainAxisSize.min,
-									children: const [
-									  Icon(Icons.link, size: 16, color: Colors.black87),
-									  SizedBox(width: 4),
-									  Text('Paired (Active)'),
-									],
-								  ),
-								  backgroundColor: Colors.orangeAccent.shade100, // close to orange 300
-								),
-								Chip(
-								  label: const Text('Active'),
-								  backgroundColor: Colors.orange.shade200,
-								),
-								Chip(
-								  label: Row(
-									mainAxisSize: MainAxisSize.min,
-									children: const [
-									  Icon(Icons.link, size: 16, color: Colors.black87),
-									  SizedBox(width: 4),
-									  Text('Paired (Resting)'),
-									],
-								  ),
-								  backgroundColor: Colors.teal.shade300,
-								),
-								Chip(
-								  label: const Text('Resting'),
-								  backgroundColor: Colors.teal.shade200,
-								),
-							  ],
-							),
-
-							const SizedBox(height: 20),
-
-							// Controls row: Test Sound + Reset Rest Order (rotation only)
-							Wrap(
-							  spacing: 12,
-							  runSpacing: 8,
-							  children: [
-								ElevatedButton.icon(
-								  onPressed: () => appState.testBeep(),
-								  icon: const Icon(Icons.volume_up),
-								  label: const Text('Test Sound'),
-								  style: ElevatedButton.styleFrom(
-									backgroundColor: const Color(0xFF6366F1),
-									foregroundColor: Colors.white,
-								  ),
-								),
-								ElevatedButton.icon(
-								  onPressed: () async {
-									final ok = await showDialog<bool>(
-									  context: context,
-									  builder: (ctx) => AlertDialog(
-										title: const Text('Reset Rest Order'),
-										content: const Text(
-										  'This will reset only the player rest rotation order.\n'
-										  'Match history and round number will remain intact.',
-										),
-										actions: [
-										  TextButton(
-											onPressed: () => Navigator.pop(ctx, false),
-											child: const Text('Cancel'),
-										  ),
-										  TextButton(
-											onPressed: () => Navigator.pop(ctx, true),
-											child: const Text('Reset'),
-										  ),
-										],
-									  ),
-									);
-									if (ok == true) {
-									  appState.resetRestOrder();
-									  if (context.mounted) {
-										ScaffoldMessenger.of(context).showSnackBar(
-										  const SnackBar(
-											content: Text('Rest order reset.'),
-											backgroundColor: Colors.green,
-										  ),
-										);
-									  }
-									}
-								  },
-								  icon: const Icon(Icons.replay),
-								  label: const Text('Reset Rest Order'),
-								  style: ElevatedButton.styleFrom(
-									backgroundColor: Colors.white,
-									foregroundColor: const Color(0xFF6366F1),
-									side: const BorderSide(color: Color(0xFF6366F1)),
-								  ),
-								),
-							  ],
-							),
-						  ],
-						);
-					  },
-					),
-				  ),
-				),
               ],
             ),
           );
@@ -2546,4 +2017,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _breakDurationController.dispose();
     super.dispose();
   }
-}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																		   
+}
