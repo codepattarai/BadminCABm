@@ -1,5 +1,5 @@
 // lib/dashboard_screen.dart
-// BadminCAB v20.26.6 – Dashboard Screen
+// BadminCAB v20.26.7 – Dashboard Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
@@ -171,9 +171,16 @@ class DashboardScreen extends StatelessWidget {
     final timeStr =
         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
-    final progress =
-        (appState.matchDuration * 60 - appState.timeRemaining) /
-        (appState.matchDuration * 60);
+    // During break: progress from 0→1 as break counts down.
+    // During play:  progress from 0→1 as match counts down.
+    final progress = appState.isInBreak
+        ? (appState.breakDuration > 0
+            ? 1.0 - (appState.breakTimeRemaining / appState.breakDuration)
+            : 1.0)
+        : (appState.matchDuration * 60 > 0
+            ? (appState.matchDuration * 60 - appState.timeRemaining) /
+              (appState.matchDuration * 60)
+            : 0.0);
 
     // Break → orange glow; playing → blue-teal glow
     final timerColor =
@@ -226,7 +233,7 @@ class DashboardScreen extends StatelessWidget {
               // Select Players  (accent / blue)
               Expanded(
                 child: _compactButton(
-                  label: 'Select (${appState.selectedPlayers.length})',
+                  label: 'Players (${appState.selectedPlayers.length})',
                   icon: Icons.people,
                   color: AppTheme.accent,
                   onPressed: () => Navigator.push(
@@ -299,8 +306,9 @@ class DashboardScreen extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppTheme.border,
-              // accent2 (teal) always — distinct from the blue timer glow
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent2),
+              // teal during play, orange during break — mirrors timerColor
+              valueColor: AlwaysStoppedAnimation<Color>(
+                appState.isInBreak ? AppTheme.breakColor : AppTheme.accent2),
               minHeight: 4,
             ),
           ),

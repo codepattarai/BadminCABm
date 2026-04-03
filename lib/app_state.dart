@@ -1,5 +1,5 @@
 // lib/app_state.dart
-// BadminCAB v20.26.5 – AppState & Player model
+// BadminCAB v20.26.7 – AppState & Player model
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -135,7 +135,28 @@ class AppState extends ChangeNotifier {
     } else {
       _selectedPlayers.add(playerId);
     }
+    // If courts are already assigned (mid-round), recompute which selected
+    // players are not on any court so the Resting card stays current.
+    // Court assignments and the timer are left completely untouched.
+    if (_courtAssignments.isNotEmpty) {
+      _refreshRestingPlayers();
+    }
     notifyListeners();
+  }
+
+  /// Recomputes _restingPlayers from the current selection and court assignments
+  /// without touching the timer, rotation index, or court cards.
+  void _refreshRestingPlayers() {
+    final onCourt = _courtAssignments.expand((c) => c).toSet();
+    // Resolve selected IDs → names, then keep those not currently on a court
+    _restingPlayers = _selectedPlayers
+        .map((id) {
+          final matches = _allPlayers.where((p) => p.id == id);
+          return matches.isEmpty ? null : matches.first.name;
+        })
+        .whereType<String>()
+        .where((name) => !onCourt.contains(name))
+        .toList();
   }
 
   void autoAssignCourts() {
