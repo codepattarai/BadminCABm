@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
+import 'app_theme.dart';
 
 class PlayersManagementScreen extends StatefulWidget {
   const PlayersManagementScreen({super.key});
@@ -42,7 +43,7 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Players'),
-        backgroundColor: const Color(0xFF6366F1),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
       ),
       body: Consumer<AppState>(
@@ -120,9 +121,10 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                                 children: [
                                   Chip(
                                     label: Text(player.type.toUpperCase(),
-                                        style:
-                                            const TextStyle(fontSize: 10)),
-                                    backgroundColor: Colors.blue[100],
+                                        style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Color(0xFF1A1A1A))),
+                                    backgroundColor: AppTheme.chipPlayBg,
                                     padding: EdgeInsets.zero,
                                     materialTapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
@@ -132,8 +134,9 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                                     Chip(
                                       label: Text('Pair ${player.pairNum}',
                                           style: const TextStyle(
-                                              fontSize: 10)),
-                                      backgroundColor: Colors.orange[100],
+                                              fontSize: 10,
+                                              color: Color(0xFF1A1A1A))),
+                                      backgroundColor: AppTheme.chipRestBg,
                                       padding: EdgeInsets.zero,
                                       materialTapTargetSize:
                                           MaterialTapTargetSize.shrinkWrap,
@@ -146,14 +149,14 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.edit,
-                                        color: Colors.blue),
+                                        color: AppTheme.primaryLight),
                                     tooltip: 'Edit',
                                     onPressed: () => _showEditPlayerDialog(
                                         context, player),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete,
-                                        color: Colors.red),
+                                        color: AppTheme.danger),
                                     tooltip: 'Delete',
                                     onPressed: () => _confirmDelete(
                                         context, appState, player),
@@ -179,7 +182,7 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                         icon: const Icon(Icons.add),
                         label: const Text('Add Player'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: AppTheme.accent,
                           foregroundColor: Colors.white,
                           padding:
                               const EdgeInsets.symmetric(horizontal: 20),
@@ -268,7 +271,7 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Player added successfully'),
-                        backgroundColor: Colors.green),
+                        backgroundColor: AppTheme.accent),
                   );
                 }
               },
@@ -382,12 +385,12 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                       content: Text('Player deleted'),
-                      backgroundColor: Colors.red),
+                      backgroundColor: AppTheme.danger),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
+                backgroundColor: AppTheme.danger, foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],

@@ -1,5 +1,5 @@
 // lib/settings_screen.dart
-// BadminCAB v20.26.4.1 – Settings Screen
+// BadminCAB v20.26.6.1 – Settings Screen
 //
 // Card layout (top to bottom):
 //   1. License Status   – compact single-line status + Manage License button
@@ -20,6 +20,17 @@ import 'package:file_picker/file_picker.dart';
 import 'app_state.dart';
 import 'license_manager.dart';
 import 'license_screen.dart';
+import 'app_theme.dart';
+
+
+// ── Controls menu actions ─────────────────────────────────────────────────
+enum _SettingsAction {
+  testSound,
+  resetRestOrder,
+  deleteHistory,
+  importData,
+  exportData,
+}
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -149,13 +160,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Exported ${xFiles.length} file(s) successfully'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.accent,
         ));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Export failed: $e'), backgroundColor: Colors.red));
+            content: Text('Export failed: $e'), backgroundColor: AppTheme.danger));
       }
     } finally {
       if (mounted) setState(() => _exportBusy = false);
@@ -212,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
+                backgroundColor: AppTheme.primaryLight,
                 foregroundColor: Colors.white),
             child: const Text('Pick Files'),
           ),
@@ -233,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('File picker error: $e'),
-            backgroundColor: Colors.red));
+            backgroundColor: AppTheme.danger));
       }
       return;
     }
@@ -242,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('No files selected – import cancelled.'),
-            backgroundColor: Colors.orange));
+            backgroundColor: AppTheme.breakColor));
       }
       return;
     }
@@ -261,7 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'Expected: ${_knownFiles.keys.join(', ')}\n'
             'Got: ${pickedNames.join(', ')}',
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.danger,
           duration: const Duration(seconds: 6),
         ));
       }
@@ -307,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
             child: const Text('Import Now'),
           ),
         ],
@@ -343,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Could not read any file content.'),
-              backgroundColor: Colors.red));
+              backgroundColor: AppTheme.danger));
         }
         return;
       }
@@ -386,7 +397,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white),
               child: const Text('Done'),
             ),
@@ -402,7 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Import failed: $e'), backgroundColor: Colors.red));
+            content: Text('Import failed: $e'), backgroundColor: AppTheme.danger));
       }
     } finally {
       if (mounted) setState(() => _importBusy = false);
@@ -426,7 +437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
+                backgroundColor: AppTheme.danger, foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],
@@ -436,7 +447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await appState.clearHistory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('History deleted.'), backgroundColor: Colors.green));
+            content: Text('History deleted.'), backgroundColor: AppTheme.accent));
       }
     }
   }
@@ -465,7 +476,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appState.resetRestOrder();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Rest order reset.'), backgroundColor: Colors.green));
+            content: Text('Rest order reset.'), backgroundColor: AppTheme.accent));
       }
     }
   }
@@ -477,8 +488,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: const Color(0xFF6366F1),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        actions: [
+          Consumer<AppState>(
+            builder: (context, appState, _) => PopupMenuButton<_SettingsAction>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              color: AppTheme.panel2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppTheme.border),
+              ),
+              onSelected: (action) {
+                switch (action) {
+                  case _SettingsAction.testSound:
+                    appState.testBeep();
+                    break;
+                  case _SettingsAction.resetRestOrder:
+                    _confirmResetRestOrder(appState);
+                    break;
+                  case _SettingsAction.deleteHistory:
+                    _confirmDeleteHistory(appState);
+                    break;
+                  case _SettingsAction.importData:
+                    _importData();
+                    break;
+                  case _SettingsAction.exportData:
+                    _exportData();
+                    break;
+                }
+              },
+              itemBuilder: (_) => [
+                _menuItem(_SettingsAction.testSound,
+                    Icons.volume_up, 'Test Sound', AppTheme.primaryLight),
+                _menuItem(_SettingsAction.resetRestOrder,
+                    Icons.replay, 'Reset Rest Order', AppTheme.textMuted),
+                const PopupMenuDivider(),
+                _menuItem(_SettingsAction.importData,
+                    Icons.download_for_offline, 'Import Data', AppTheme.accent),
+                _menuItem(_SettingsAction.exportData,
+                    Icons.upload_file, 'Export All Data', AppTheme.accent),
+                const PopupMenuDivider(),
+                _menuItem(_SettingsAction.deleteHistory,
+                    Icons.delete_sweep, 'Delete History', AppTheme.danger),
+              ],
+            ),
+          ),
+        ],
       ),
       body: Consumer<AppState>(
         builder: (context, appState, _) {
@@ -492,8 +548,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildMatchSettingsCard(appState),
                 const SizedBox(height: 12),
                 _buildDisplayCard(appState),
-                const SizedBox(height: 12),
-                _buildControlsCard(appState),
                 const SizedBox(height: 24),
               ],
             ),
@@ -532,7 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: const Icon(Icons.vpn_key, size: 15),
                     label: const Text('Manage'),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF6366F1),
+                      foregroundColor: AppTheme.primaryLight,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       textStyle: const TextStyle(fontSize: 13),
@@ -598,13 +652,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Settings saved!'),
-                      backgroundColor: Colors.green));
+                      backgroundColor: AppTheme.accent));
                 },
                 icon: const Icon(Icons.save),
                 label: const Text('Save Settings'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -631,7 +685,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 const Icon(Icons.text_increase,
-                    color: Color(0xFF6366F1), size: 20),
+                    color: AppTheme.primaryLight, size: 20),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text('Player Chip Size',
@@ -665,21 +719,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _previewChip(
                     label: 'Paired - Playing',
                     icon: Icons.link,
-                    bg: Colors.orangeAccent.shade100,
-                    border: Colors.deepOrange.shade300),
+                    bg: AppTheme.chipPlayBg,
+                    border: AppTheme.chipPlayBorder),
                 _previewChip(
                     label: 'Playing',
-                    bg: Colors.orange.shade200,
-                    border: Colors.orange.shade400),
+                    bg: AppTheme.chipPlayBg,
+                    border: AppTheme.chipPlayBorder),
                 _previewChip(
                     label: 'Paired - Resting',
                     icon: Icons.link,
-                    bg: Colors.teal.shade300,
-                    border: Colors.teal.shade600),
+                    bg: AppTheme.chipRestBg,
+                    border: AppTheme.chipRestBorder),
                 _previewChip(
                     label: 'Resting',
-                    bg: Colors.teal.shade200,
-                    border: Colors.teal.shade500),
+                    bg: AppTheme.chipRestBg,
+                    border: AppTheme.chipRestBorder),
               ],
             ),
           ],
@@ -721,120 +775,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ── Card 4: Controls ──────────────────────────────────────────────────────
 
-  Widget _buildControlsCard(AppState appState) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Controls',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 14),
+  // ── Popup menu item helper ────────────────────────────────────────────────
 
-            // Row 1: Test Sound | Reset Rest Order
-            Row(
-              children: [
-                Expanded(
-                  child: _ctrlBtn(
-                    icon: Icons.volume_up,
-                    label: 'Test Sound',
-                    color: const Color(0xFF6366F1),
-                    onTap: () => appState.testBeep(),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ctrlBtn(
-                    icon: Icons.replay,
-                    label: 'Reset Rest Order',
-                    color: Colors.blueGrey,
-                    onTap: () => _confirmResetRestOrder(appState),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Row 2: Delete History (full width, red)
-            _ctrlBtn(
-              icon: Icons.delete_sweep,
-              label: 'Delete History',
-              color: Colors.red,
-              onTap: () => _confirmDeleteHistory(appState),
-              fullWidth: true,
-            ),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Divider(height: 1),
-            ),
-
-            // Row 3: Import | Export
-            Row(
-              children: [
-                Expanded(
-                  child: _ctrlBtn(
-                    icon: Icons.download_for_offline,
-                    label: 'Import Data',
-                    color: Colors.teal,
-                    busy: _importBusy,
-                    onTap: _importData,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ctrlBtn(
-                    icon: Icons.upload_file,
-                    label: 'Export All Data',
-                    color: const Color(0xFF6366F1),
-                    busy: _exportBusy,
-                    onTap: _exportData,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'License keys are never exported or imported.',
-              style: TextStyle(fontSize: 11, color: Colors.orange),
-            ),
-          ],
-        ),
+  PopupMenuItem<_SettingsAction> _menuItem(
+    _SettingsAction value,
+    IconData icon,
+    String label,
+    Color iconColor,
+  ) {
+    return PopupMenuItem<_SettingsAction>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(color: AppTheme.textPrimary)),
+        ],
       ),
     );
-  }
-
-  Widget _ctrlBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-    bool busy = false,
-    bool fullWidth = false,
-  }) {
-    final btn = ElevatedButton.icon(
-      onPressed: busy ? null : onTap,
-      icon: busy
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white),
-            )
-          : Icon(icon, size: 18),
-      label: Text(label, textAlign: TextAlign.center),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-    return fullWidth ? SizedBox(width: double.infinity, child: btn) : btn;
   }
 
   @override

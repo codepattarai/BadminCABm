@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
+import 'app_theme.dart';
 
 class PlayerSelectionScreen extends StatefulWidget {
   const PlayerSelectionScreen({super.key});
@@ -41,7 +42,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Players for Session'),
-        backgroundColor: const Color(0xFF6366F1),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
       ),
       body: Consumer<AppState>(
@@ -54,7 +55,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.indigo[50],
+                color: AppTheme.surface,
                 child: Column(
                   children: [
                     Text(
@@ -62,7 +63,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                       style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6366F1)),
+                          color: AppTheme.primaryLight),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -106,11 +107,15 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                         ? appState.selectedPlayers.indexOf(player.id) + 1
                         : null;
 
+                    // Chip text is always dark — chips use light bg colours
+                    const chipTextStyle = TextStyle(
+                        fontSize: 10, color: Color(0xFF1A1A1A));
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       color: isSelected
-                          ? const Color(0xFF6366F1)
-                          : Colors.white,
+                          ? AppTheme.accent   // sky blue when selected
+                          : AppTheme.panel,   // dark panel when unselected
                       child: ListTile(
                         onTap: () => appState.togglePlayerSelection(player.id),
                         leading: isSelected
@@ -119,7 +124,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                                 child: Text(
                                   '$selectionIndex',
                                   style: const TextStyle(
-                                      color: Color(0xFF6366F1),
+                                      color: AppTheme.panel,
                                       fontWeight: FontWeight.bold),
                                 ),
                               )
@@ -127,17 +132,18 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                         title: Text(
                           player.name,
                           style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.textPrimary,
                               fontWeight: FontWeight.w500),
                         ),
                         subtitle: Row(
                           children: [
                             Chip(
                               label: Text(player.type.toUpperCase(),
-                                  style: const TextStyle(fontSize: 10)),
-                              backgroundColor: isSelected
-                                  ? Colors.white.withOpacity(0.3)
-                                  : Colors.grey[200],
+                                  style: chipTextStyle),
+                              // Always use yellow chip — dark text always readable
+                              backgroundColor: AppTheme.chipPlayBg,
                               padding: EdgeInsets.zero,
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
@@ -146,10 +152,9 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                               const SizedBox(width: 8),
                               Chip(
                                 label: Text('Pair ${player.pairNum}',
-                                    style: const TextStyle(fontSize: 10)),
-                                backgroundColor: isSelected
-                                    ? Colors.orange.withOpacity(0.3)
-                                    : Colors.orange[100],
+                                    style: chipTextStyle),
+                                // Always use teal chip — dark text always readable
+                                backgroundColor: AppTheme.chipRestBg,
                                 padding: EdgeInsets.zero,
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
@@ -160,8 +165,8 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                         trailing: isSelected
                             ? const Icon(Icons.check_circle,
                                 color: Colors.white)
-                            : const Icon(Icons.circle_outlined,
-                                color: Colors.grey),
+                            : Icon(Icons.circle_outlined,
+                                color: AppTheme.textMuted),
                       ),
                     );
                   },
@@ -176,7 +181,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
                       ),
                       child: Text(

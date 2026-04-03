@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'license_manager.dart';
 import 'main.dart';
-
+import 'app_theme.dart';
 
 /// Gate widget: decides whether to show LicenseScreen or your MainScreen.
 class LicenseGate extends StatefulWidget {
-  final Widget child; // your main screen
+  final Widget child;
   const LicenseGate({super.key, required this.child});
 
   @override
@@ -45,7 +45,7 @@ class _LicenseGateState extends State<LicenseGate> {
   }
 }
 
-/// License screen UI
+/// License activation screen
 class LicenseScreen extends StatefulWidget {
   const LicenseScreen({super.key});
 
@@ -79,50 +79,36 @@ class _LicenseScreenState extends State<LicenseScreen> {
       _busy = true;
       _error = null;
     });
-  
+
     final msg = await _lm.activateWithKey(_controller.text);
-  
+
     if (msg == null) {
       if (!mounted) return;
-  
-      // Delay navigation until after the current frame
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => LicenseGate(
-              child: MainScreen(),
-            ),
+            builder: (_) => LicenseGate(child: MainScreen()),
           ),
         );
       });
-
-  
       return;
     }
-  
+
     setState(() {
       _error = msg;
       _busy = false;
     });
   }
 
-
-  // Helper: after unlock, land at your main scaffold
-  Widget widgetAfterUnlock() {
-    // You already have MainScreen in main.dart; import not needed here.
-    // We'll just rebuild LicenseGate at app root, so this won't be used.
-    return const SizedBox.shrink();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final hintTrial = 'To start a 30‑day trial, enter: ${LicenseManager.kTrialKey}';
+    final hintTrial =
+        'To start a 30‑day trial, enter: ${LicenseManager.kTrialKey}';
     return Scaffold(
       appBar: AppBar(
         title: const Text('Activate BadminCAB'),
-        backgroundColor: const Color(0xFF6366F1),
-        foregroundColor: Colors.white,
+        // Uses AppTheme.panel via the global AppBarTheme — no override needed
       ),
       body: _busy
           ? const Center(child: CircularProgressIndicator())
@@ -131,54 +117,106 @@ class _LicenseScreenState extends State<LicenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Card(
-                    color: Colors.indigo[50],
-                    child: Padding(
+                  // ── Device Code card ──────────────────────────────────────
+                  Container(
+                    decoration: BoxDecoration(
+                      // Glow border: same blue→teal treatment as court cards
+                      gradient: AppTheme.glowGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accent.withOpacity(0.18),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(1.5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.panel,
+                        borderRadius: BorderRadius.circular(14.5),
+                      ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Device Code',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          SelectableText(
-                            _deviceCode,
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 20),
-                          ),
-                          const SizedBox(height: 8),
                           const Text(
-                            'Email this device code to codepattarai@gmail.com to request a full license.',
-                            style: TextStyle(color: Colors.black87),
+                            'Device Code',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.accent,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // Device code in accent colour — clearly visible
+                          SelectableText(
+                            _deviceCode.isEmpty ? '—' : _deviceCode,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Email this code to codepattarai@gmail.com to request a full license.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textMuted,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+
+                  const SizedBox(height: 20),
+
+                  // ── License key input ─────────────────────────────────────
                   TextField(
                     controller: _controller,
                     textCapitalization: TextCapitalization.characters,
+                    style: const TextStyle(color: AppTheme.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Enter License Key',
-                      hintText: 'e.g., XXXXX-XXXXX-XXXXX-XXXXX-XXXXX or TRIAL-2026-BADMINCAB',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.vpn_key),
+                      hintText:
+                          'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX  or  TRIAL-2026-BADMINCAB',
+                      prefixIcon: const Icon(Icons.vpn_key,
+                          color: AppTheme.accent),
                       errorText: _error,
                     ),
                   ),
+
                   const SizedBox(height: 12),
-                  Text(hintTrial, style: const TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 16),
+
+                  Text(
+                    hintTrial,
+                    style: const TextStyle(
+                        color: AppTheme.textMuted, fontSize: 13),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Activate button ───────────────────────────────────────
                   SizedBox(
-                    width: double.infinity,
+                    height: 52,
                     child: ElevatedButton.icon(
                       onPressed: _busy ? null : _activate,
                       icon: const Icon(Icons.check),
-                      label: const Text('Activate'),
+                      label: const Text('Activate',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700)),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: const Color(0xFF6366F1),
+                        backgroundColor: AppTheme.action,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),

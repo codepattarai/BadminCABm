@@ -217,7 +217,11 @@ class AppState extends ChangeNotifier {
     final singles = <String>[];
 
     for (final playerId in _selectedPlayers) {
-      final player = _allPlayers.firstWhere((p) => p.id == playerId);
+      // orElse guards against stale IDs left in _selectedPlayers after
+      // a player import replaces the roster with new IDs
+      final matches = _allPlayers.where((p) => p.id == playerId);
+      if (matches.isEmpty) continue; // stale ID – skip silently
+      final player = matches.first;
       final pairNum = player.pairNum;
       if (pairNum != null) {
         pairGroups.putIfAbsent(pairNum, () => []);
@@ -233,6 +237,7 @@ class AppState extends ChangeNotifier {
       if (pair.length == 2) {
         units.add(pair);
       } else {
+        // Only one of the pair was selected — treat as a single
         singles.addAll(pair);
       }
     }

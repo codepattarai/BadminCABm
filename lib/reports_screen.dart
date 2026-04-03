@@ -1,9 +1,10 @@
 // lib/reports_screen.dart
-// BadminCAB v20.26.4 – Reports Screen
+// BadminCAB v20.26.6 – Reports Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'app_state.dart';
+import 'app_theme.dart';
 import 'report_manager.dart';
 import 'csv_exporter.dart';
 
@@ -96,7 +97,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Report exported'), backgroundColor: Colors.green),
+              content: Text('Report exported'), backgroundColor: AppTheme.accent),
         );
       }
     } catch (e) {
@@ -118,7 +119,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Session Report'),
-        backgroundColor: const Color(0xFF6366F1),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -188,7 +189,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Row(
                   children: [
                     const Icon(Icons.calendar_today,
-                        color: Color(0xFF6366F1)),
+                        color: AppTheme.primary),
                     const SizedBox(width: 12),
                     Text(
                       DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
@@ -333,7 +334,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 label: const Text('Recalculate'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -355,13 +356,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       crossAxisSpacing: 12,
       children: [
         _buildStatCard('Total Rounds', r.totalRounds.toString(),
-            const Color(0xFF6366F1)),
+            AppTheme.rep1),
         _buildStatCard(
-            'Total Matches', r.totalMatches.toString(), Colors.green),
+            'Total Matches', r.totalMatches.toString(), AppTheme.rep2),
         _buildStatCard(
-            'Total Players', r.totalPlayers.toString(), Colors.orange),
+            'Total Players', r.totalPlayers.toString(), AppTheme.rep3),
         _buildStatCard(
-            'Shuttles Used', r.shuttlesUsed.toString(), Colors.amber),
+            'Shuttles Used', r.shuttlesUsed.toString(), AppTheme.rep4),
       ],
     );
   }
@@ -400,7 +401,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         r.playerCosts.fold<double>(0, (s, p) => s + p.cost);
 
     return Card(
-      color: Colors.blue[50],
+      color: AppTheme.panel2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppTheme.accent, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -410,8 +415,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF6366F1))),
-            const Divider(height: 24),
+                    color: AppTheme.accent)),
+            const Divider(height: 24, color: AppTheme.border),
             _buildSummaryRow('Charge Model',
                 r.chargeType == CasualChargeType.fixed
                     ? 'Fixed Charge'
@@ -422,7 +427,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 '\$${r.totalShuttleCost.toStringAsFixed(2)}'),
             _buildSummaryRow('Other Expenses',
                 '\$${r.otherExpenses.toStringAsFixed(2)}'),
-            const Divider(height: 24),
+            const Divider(height: 24, color: AppTheme.border),
             _buildSummaryRow('Total Base Cost',
                 '\$${r.totalBaseCost.toStringAsFixed(2)}',
                 bold: true),
@@ -431,7 +436,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 '\$${casualTotal.toStringAsFixed(2)}'),
             _buildSummaryRow('Full Member Split (${full.length})',
                 '\$${fullTotal.toStringAsFixed(2)}'),
-            const Divider(height: 24),
+            const Divider(height: 24, color: AppTheme.border),
             _buildSummaryRow(
                 'Total Collected', '\$${totalCollected.toStringAsFixed(2)}',
                 bold: true, fontSize: 18),
@@ -450,14 +455,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           Text(label,
               style: TextStyle(
-                  color: Colors.grey[700],
-                  fontWeight:
-                      bold ? FontWeight.bold : FontWeight.normal,
+                  color: bold ? AppTheme.textPrimary : AppTheme.textMuted,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   fontSize: fontSize)),
           Text(value,
               style: TextStyle(
-                  fontWeight:
-                      bold ? FontWeight.bold : FontWeight.w500,
+                  color: bold ? AppTheme.accent2 : AppTheme.textPrimary,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                   fontSize: fontSize)),
         ],
       ),
@@ -489,19 +493,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   color: p.type == 'full'
-                      ? Colors.blue[50]
-                      : Colors.orange[50],
+                      ? const Color(0xFF1A2744)  // dark blue tint
+                      : const Color(0xFF1A2A20), // dark green tint
                   child: ListTile(
                     title: Text(p.name,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold)),
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Type: ${p.type.toUpperCase()}'),
-                        Text('Sessions: ${p.sessions}'),
+                        Text('Type: ${p.type.toUpperCase()}',
+                            style: const TextStyle(color: AppTheme.textMuted)),
+                        Text('Sessions: ${p.sessions}',
+                            style: const TextStyle(color: AppTheme.textMuted)),
                         Text(
-                            'Shuttle Share: \$${p.shuttleShare.toStringAsFixed(2)}'),
+                            'Shuttle Share: \$${p.shuttleShare.toStringAsFixed(2)}',
+                            style: const TextStyle(color: AppTheme.textMuted)),
                       ],
                     ),
                     trailing: Text(
@@ -509,7 +517,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6366F1)),
+                          color: AppTheme.accent),
                     ),
                   ),
                 );
