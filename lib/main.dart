@@ -1,6 +1,6 @@
 // lib/main.dart
 // BadminCAB Flutter Mobile App
-// Version 20.26.5  Prod Owner Satheesh K.
+// Version 20.26.8  Prod Owner Satheesh K.
 //
 
 import 'package:flutter/material.dart';
@@ -24,11 +24,17 @@ class BadminCABApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AppState(),
-      child: MaterialApp(
-        title: 'BadminCAB',
-        theme: AppTheme.themeData,
-        home: const LicenseGate(child: MainScreen()),
-        debugShowCheckedModeBanner: false,
+      // Consumer rebuilds MaterialApp when isLightTheme changes so the whole
+      // app re-themes instantly without a restart.
+      child: Consumer<AppState>(
+        builder: (context, appState, _) => MaterialApp(
+          title: 'BadminCAB',
+          theme: appState.isLightTheme
+              ? AppTheme.lightThemeData
+              : AppTheme.themeData,
+          home: const LicenseGate(child: MainScreen()),
+          debugShowCheckedModeBanner: false,
+        ),
       ),
     );
   }

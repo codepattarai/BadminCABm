@@ -1,5 +1,5 @@
 // lib/app_state.dart
-// BadminCAB v20.26.7 – AppState & Player model
+// BadminCAB v20.26.8 – AppState & Player model
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -46,6 +46,9 @@ class AppState extends ChangeNotifier {
 
   double _chipScale = 1.0;
   double get chipScale => _chipScale;
+
+  bool _isLightTheme = false;
+  bool get isLightTheme => _isLightTheme;
 
   List<Player> get allPlayers => _allPlayers;
   List<String> get selectedPlayers => _selectedPlayers;
@@ -127,6 +130,7 @@ class AppState extends ChangeNotifier {
     _breakDuration = prefs.getInt('breakDuration') ?? 20;
     _timeRemaining = _matchDuration * 60;
     _chipScale = prefs.getDouble('chipScale') ?? 1.0;
+    _isLightTheme = prefs.getBool('isLightTheme') ?? false;
   }
 
   void togglePlayerSelection(String playerId) {
@@ -394,6 +398,7 @@ class AppState extends ChangeNotifier {
     await prefs.setInt('matchDuration', _matchDuration);
     await prefs.setInt('breakDuration', _breakDuration);
     await prefs.setDouble('chipScale', _chipScale);
+    await prefs.setBool('isLightTheme', _isLightTheme);
   }
 
   Future<void> clearHistory() async {
@@ -409,6 +414,12 @@ class AppState extends ChangeNotifier {
 
   void setChipScale(double v) {
     _chipScale = v.clamp(0.75, 1.60);
+    _saveSettings();
+    notifyListeners();
+  }
+
+  void setLightTheme(bool v) {
+    _isLightTheme = v;
     _saveSettings();
     notifyListeners();
   }

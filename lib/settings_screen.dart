@@ -1,5 +1,5 @@
 // lib/settings_screen.dart
-// BadminCAB v20.26.6.1 – Settings Screen
+// BadminCAB v20.26.8 – Settings Screen
 //
 // Card layout (top to bottom):
 //   1. License Status   – compact single-line status + Manage License button
@@ -223,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryLight,
+                backgroundColor: AppTheme.accent,
                 foregroundColor: Colors.white),
             child: const Text('Pick Files'),
           ),
@@ -397,7 +397,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white),
               child: const Text('Done'),
             ),
@@ -488,16 +488,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           Consumer<AppState>(
             builder: (context, appState, _) => PopupMenuButton<_SettingsAction>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              color: AppTheme.panel2,
+              icon: const Icon(Icons.more_vert),
+              color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.border),
+                side: BorderSide(color: Theme.of(context).dividerColor),
               ),
               onSelected: (action) {
                 switch (action) {
@@ -679,9 +678,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Display',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            // Title row: "Display" on left, light-theme toggle on right
+            Row(
+              children: [
+                const Text('Display',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Icon(Icons.light_mode, size: 16, color: AppTheme.textMuted),
+                const SizedBox(width: 4),
+                const Text('Light Theme',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                const SizedBox(width: 2),
+                Switch(
+                  value: appState.isLightTheme,
+                  activeColor: AppTheme.accent,
+                  onChanged: (v) => appState.setLightTheme(v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Row(
               children: [
                 const Icon(Icons.text_increase,
@@ -790,7 +805,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Icon(icon, color: iconColor, size: 20),
           const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: AppTheme.textPrimary)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         ],
       ),
     );

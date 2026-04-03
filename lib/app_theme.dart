@@ -1,5 +1,5 @@
 // lib/app_theme.dart
-// BadminCAB – Jay Score dark theme palette
+// BadminCAB – 20.26.8
 //
 // Colours lifted directly from Jay Score dark theme CSS variables:
 //   --bg        #0c111c   body background (deep blue-black)
@@ -165,6 +165,115 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: border),
+          ),
+        ),
+      );
+
+  // ── Light theme palette ───────────────────────────────────────────────────
+  // Dark blues → dark greys; panels → light greys; text flipped to dark.
+  // Accent, danger, chip, and break colours are IDENTICAL to dark theme
+  // so every function can be tested without colour regressions.
+
+  static const Color lBg      = Color(0xFFF2F4F7); // light grey canvas
+  static const Color lPanel   = Color(0xFFFFFFFF); // white card / AppBar
+  static const Color lPanel2  = Color(0xFFEEF0F4); // input fill / gradient end
+  static const Color lBorder  = Color(0xFFD1D5DB); // subtle border
+
+  static const Color lTextPrimary = Color(0xFF1A1F2E); // near-black text
+  static const Color lTextMuted   = Color(0xFF6B7280); // medium grey hint
+
+  // Resting card: very light teal tint instead of dark teal
+  static const Color lRestCardBg     = Color(0xFFE6F4F2);
+  static const Color lRestCardBorder = Color(0xFFB2DFDB);
+
+  static ThemeData get lightThemeData => ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.light(
+          primary: accent,
+          secondary: accent2,
+          surface: lPanel,
+          error: danger,
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: lTextPrimary,
+        ),
+        scaffoldBackgroundColor: lBg,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: lPanel,
+          foregroundColor: lTextPrimary,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            color: lTextPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: lPanel,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: lBorder),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: lPanel2,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: lBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: lBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: accent, width: 1.5),
+          ),
+          labelStyle: const TextStyle(color: lTextMuted),
+          hintStyle: const TextStyle(color: lTextMuted),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: lPanel,
+          selectedItemColor: accent,
+          unselectedItemColor: lTextMuted,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+        ),
+        dividerTheme: const DividerThemeData(color: lBorder),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: lPanel,
+          contentTextStyle: const TextStyle(color: lTextPrimary),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: lBorder),
+          ),
+        ),
+        chipTheme: ChipThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: lPanel,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: lBorder),
           ),
         ),
       );

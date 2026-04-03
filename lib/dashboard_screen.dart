@@ -1,5 +1,5 @@
 // lib/dashboard_screen.dart
-// BadminCAB v20.26.7 – Dashboard Screen
+// BadminCAB v20.26.8 – Dashboard Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
@@ -31,18 +31,15 @@ class _GlowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final glow       = glowColors ?? defaultGlow;
     final r          = borderRadius;
-    final innerColor = cardColor ?? AppTheme.panel;
+    final themeCard  = Theme.of(context).cardTheme.color
+                    ?? Theme.of(context).colorScheme.surface;
+    final innerColor = cardColor ?? themeCard;
     const glowWidth  = 1.5;
 
     final innerContainer = Container(
       decoration: BoxDecoration(
         color: innerColor,
         borderRadius: BorderRadius.circular(r - glowWidth),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [innerColor.withOpacity(1), AppTheme.panel2],
-        ),
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -51,7 +48,7 @@ class _GlowCard extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(r),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
           color: innerColor,
           boxShadow: boxShadow,
         ),
@@ -67,21 +64,8 @@ class _GlowCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: glow,
         ),
-        boxShadow: boxShadow ??
-            [
-              BoxShadow(
-                color: glow.first.withOpacity(0.20),
-                blurRadius: 16,
-                spreadRadius: 0,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: glow.last.withOpacity(0.15),
-                blurRadius: 24,
-                spreadRadius: 0,
-                offset: const Offset(0, 8),
-              ),
-            ],
+        // No box shadow — gradient border gives definition without glow smudge
+        boxShadow: boxShadow ?? const [],
       ),
       padding: EdgeInsets.all(glowWidth),
       child: ClipRRect(
@@ -100,37 +84,21 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.panel,
-            border: Border(bottom: BorderSide(color: AppTheme.border)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x595AAEF8),
-                offset: Offset(0, 1),
-                blurRadius: 0,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: AppBar(
-            title: const Text('Badminton Court Allocation Board'),
-            backgroundColor: Colors.transparent,
-            foregroundColor: AppTheme.textPrimary,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-          ),
-        ),
+      appBar: AppBar(
+        title: const Text('Badminton Court Allocation Board'),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Consumer<AppState>(
         builder: (context, appState, _) {
           return Column(
             children: [
               // ── Sticky compact timer bar (never scrolls away) ─────────────
-              _buildStickyTimer(context, appState),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: _buildStickyTimer(context, appState),
+              ),
 
               // ── Scrollable court content ──────────────────────────────────
               Expanded(
@@ -145,7 +113,7 @@ class DashboardScreen extends StatelessWidget {
                         if (appState.restingPlayers.isNotEmpty)
                           _buildRestingPlayers(context, appState),
                       ] else
-                        _buildEmptyState(),
+                        _buildEmptyState(context),
                     ],
                   ),
                 ),
@@ -194,7 +162,7 @@ class DashboardScreen extends StatelessWidget {
 
     return _GlowCard(
       glowColors: glowColors,
-      borderRadius: 12,          // slightly rounded sticky bar
+      borderRadius: 16,          // match court card corners
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -209,8 +177,8 @@ class DashboardScreen extends StatelessWidget {
 
               Text(
                 timeStr,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,
@@ -233,7 +201,7 @@ class DashboardScreen extends StatelessWidget {
               // Select Players  (accent / blue)
               Expanded(
                 child: _compactButton(
-                  label: 'Players (${appState.selectedPlayers.length})',
+                  label: 'Pick Players (${appState.selectedPlayers.length})',
                   icon: Icons.people,
                   color: AppTheme.accent,
                   onPressed: () => Navigator.push(
@@ -305,7 +273,7 @@ class DashboardScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppTheme.border,
+              backgroundColor: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface).withOpacity(0.35),
               // teal during play, orange during break — mirrors timerColor
               valueColor: AlwaysStoppedAnimation<Color>(
                 appState.isInBreak ? AppTheme.breakColor : AppTheme.accent2),
@@ -465,12 +433,12 @@ class DashboardScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'COURT ASSIGNMENTS',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: AppTheme.textMuted,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             letterSpacing: 1.8,
           ),
         ),
@@ -499,7 +467,7 @@ class DashboardScreen extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         fontSize: titleFs,
                         letterSpacing: 0.2,
-                        color: AppTheme.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     SizedBox(height: chipGap),
@@ -580,9 +548,10 @@ class DashboardScreen extends StatelessWidget {
     final borderW = (1.4  * s).clamp(1.0,   2.0);
     const chipRadius = BorderRadius.all(Radius.circular(12));
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return _GlowCard(
       glowColors: _GlowCard.restGlow,
-      cardColor: AppTheme.restCardBg,
+      cardColor: isDark ? AppTheme.restCardBg : AppTheme.lRestCardBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -592,7 +561,7 @@ class DashboardScreen extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: titleFs,
               letterSpacing: 0.2,
-              color: AppTheme.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           SizedBox(height: chipGap),
@@ -646,16 +615,19 @@ class DashboardScreen extends StatelessWidget {
   }
 
   // ── Empty state ───────────────────────────────────────────────────────────
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
-          children: const [
-            Icon(Icons.people_outline, size: 64, color: AppTheme.textMuted),
-            SizedBox(height: 16),
+          children: [
+            Icon(Icons.people_outline, size: 64,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+            const SizedBox(height: 16),
             Text('Select players to begin',
-                style: TextStyle(fontSize: 16, color: AppTheme.textMuted)),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
           ],
         ),
       ),

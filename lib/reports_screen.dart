@@ -1,5 +1,5 @@
 // lib/reports_screen.dart
-// BadminCAB v20.26.6 – Reports Screen
+// BadminCAB v20.26.8 – Reports Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -119,8 +119,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Session Report'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -189,7 +188,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Row(
                   children: [
                     const Icon(Icons.calendar_today,
-                        color: AppTheme.primary),
+                        color: AppTheme.accent),
                     const SizedBox(width: 12),
                     Text(
                       DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
@@ -334,7 +333,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 label: const Text('Recalculate'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -400,8 +399,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final totalCollected =
         r.playerCosts.fold<double>(0, (s, p) => s + p.cost);
 
+    final cardBg = Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface;
     return Card(
-      color: AppTheme.panel2,
+      color: cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: AppTheme.accent, width: 1),
@@ -416,7 +416,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.accent)),
-            const Divider(height: 24, color: AppTheme.border),
+            Divider(height: 24, color: Theme.of(context).dividerColor),
             _buildSummaryRow('Charge Model',
                 r.chargeType == CasualChargeType.fixed
                     ? 'Fixed Charge'
@@ -427,7 +427,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 '\$${r.totalShuttleCost.toStringAsFixed(2)}'),
             _buildSummaryRow('Other Expenses',
                 '\$${r.otherExpenses.toStringAsFixed(2)}'),
-            const Divider(height: 24, color: AppTheme.border),
+            Divider(height: 24, color: Theme.of(context).dividerColor),
             _buildSummaryRow('Total Base Cost',
                 '\$${r.totalBaseCost.toStringAsFixed(2)}',
                 bold: true),
@@ -436,7 +436,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 '\$${casualTotal.toStringAsFixed(2)}'),
             _buildSummaryRow('Full Member Split (${full.length})',
                 '\$${fullTotal.toStringAsFixed(2)}'),
-            const Divider(height: 24, color: AppTheme.border),
+            Divider(height: 24, color: Theme.of(context).dividerColor),
             _buildSummaryRow(
                 'Total Collected', '\$${totalCollected.toStringAsFixed(2)}',
                 bold: true, fontSize: 18),
@@ -455,12 +455,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           Text(label,
               style: TextStyle(
-                  color: bold ? AppTheme.textPrimary : AppTheme.textMuted,
+                  color: bold
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   fontSize: fontSize)),
           Text(value,
               style: TextStyle(
-                  color: bold ? AppTheme.accent2 : AppTheme.textPrimary,
+                  color: bold ? AppTheme.accent2 : Theme.of(context).colorScheme.onSurface,
                   fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                   fontSize: fontSize)),
         ],
@@ -493,23 +495,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   color: p.type == 'full'
-                      ? const Color(0xFF1A2744)  // dark blue tint
-                      : const Color(0xFF1A2A20), // dark green tint
+                      ? (Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1A2744)
+                          : const Color(0xFFE8F0FE))   // light blue tint
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1A2A20)
+                          : const Color(0xFFE8F5E9)),  // light green tint
                   child: ListTile(
                     title: Text(p.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary)),
+                            color: Theme.of(context).colorScheme.onSurface)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Type: ${p.type.toUpperCase()}',
-                            style: const TextStyle(color: AppTheme.textMuted)),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
                         Text('Sessions: ${p.sessions}',
-                            style: const TextStyle(color: AppTheme.textMuted)),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
                         Text(
                             'Shuttle Share: \$${p.shuttleShare.toStringAsFixed(2)}',
-                            style: const TextStyle(color: AppTheme.textMuted)),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
                       ],
                     ),
                     trailing: Text(

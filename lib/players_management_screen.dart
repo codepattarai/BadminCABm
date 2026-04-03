@@ -1,5 +1,5 @@
 // lib/players_management_screen.dart
-// BadminCAB v20.26.4 – Players Management Screen
+// BadminCAB v20.26.8 – Players Management Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
@@ -43,8 +43,7 @@ class _PlayersManagementScreenState extends State<PlayersManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Players'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Consumer<AppState>(
         builder: (context, appState, _) {

@@ -1,5 +1,5 @@
 // lib/player_selection_screen.dart
-// BadminCAB v20.26.4 – Player Selection Screen
+// BadminCAB v20.26.8 – Player Selection Screen
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
@@ -42,8 +42,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Players for Session'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Consumer<AppState>(
         builder: (context, appState, _) {
@@ -55,7 +54,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                color: AppTheme.surface,
+                color: Theme.of(context).colorScheme.surface,
                 child: Column(
                   children: [
                     Text(
@@ -114,8 +113,8 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       color: isSelected
-                          ? AppTheme.accent   // sky blue when selected
-                          : AppTheme.panel,   // dark panel when unselected
+                          ? AppTheme.accent
+                          : Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
                       child: ListTile(
                         onTap: () => appState.togglePlayerSelection(player.id),
                         leading: isSelected
@@ -134,7 +133,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                           style: TextStyle(
                               color: isSelected
                                   ? Colors.white
-                                  : AppTheme.textPrimary,
+                                  : Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w500),
                         ),
                         subtitle: Row(
@@ -166,7 +165,7 @@ class _PlayerSelectionScreenState extends State<PlayerSelectionScreen> {
                             ? const Icon(Icons.check_circle,
                                 color: Colors.white)
                             : Icon(Icons.circle_outlined,
-                                color: AppTheme.textMuted),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
                       ),
                     );
                   },
